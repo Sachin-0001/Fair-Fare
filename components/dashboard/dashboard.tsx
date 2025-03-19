@@ -26,6 +26,10 @@ import {
 } from "recharts"
 import MapComponent from "@/components/MapComponent"
 import PredictComponent from "../PredictComponent"
+import dynamic from "next/dynamic";
+
+// Dynamically import LeafletMap with SSR disabled
+const LeafletMap = dynamic(() => import("@/components/leafletMap"), { ssr: false });
 
 export default function Dashboard() {
   const [filterOpen, setFilterOpen] = useState(false)
@@ -49,6 +53,8 @@ export default function Dashboard() {
     lat: null,
     lon: null,
   })
+  const [pastRides, setPastRides] = useState<Ride[]>([]); 
+  const [loading, setLoading] = useState(true);
   
   const suggestionsRef = useRef(null)
 
@@ -78,11 +84,11 @@ export default function Dashboard() {
   ]
 
   // Past rides data
-  const pastRides = [
-    { id: 1, from: "Home", to: "Office", date: "Today", time: "9:30 AM", fare: 350, rating: 5 },
-    { id: 2, from: "Office", to: "Home", date: "Yesterday", time: "6:30 PM", fare: 380, rating: 4 },
-    { id: 3, from: "Home", to: "Airport", date: "Last Week", time: "5:00 AM", fare: 650, rating: 5 }
-  ]
+  // const pastRides = [
+  //   { id: 1, from: "Home", to: "Office", date: "Today", time: "9:30 AM", fare: 350, rating: 5 },
+  //   { id: 2, from: "Office", to: "Home", date: "Yesterday", time: "6:30 PM", fare: 380, rating: 4 },
+  //   { id: 3, from: "Home", to: "Airport", date: "Last Week", time: "5:00 AM", fare: 650, rating: 5 }
+  // ]
 
   // Upcoming rides
   const upcomingRides = [
@@ -188,6 +194,24 @@ export default function Dashboard() {
       document.removeEventListener("mousedown", handleClickOutside)
     }
   }, [])
+  useEffect(() => {
+      const fetchRides = async () => {
+        try {
+          const response = await fetch("/api/getRides");
+          if (!response.ok) {
+            throw new Error(`Failed to fetch rides: ${response.status}`);
+          }
+          const data = await response.json();
+          setPastRides(data.rides.slice(-3)); // Limit to the last 3 rides
+          setLoading(false);
+        } catch (error) {
+          console.error("Error fetching rides:", error);
+          setLoading(false);
+        }
+      };
+  
+      fetchRides();
+    }, []);
 
   const handleLockFare = () => {
     setFareLocked(true)
@@ -207,12 +231,11 @@ export default function Dashboard() {
 
   interface Ride {
     id: number;
-    from: string;
-    to: string;
-    date: string;
-    time: string;
-    fare: number;
+    currentLocation: string;
+    destination: string;
+    distanceKm: number; // Added distanceKm property
     rating?: number;
+    fare: number;
   }
 
   interface DemandData {
@@ -286,6 +309,7 @@ export default function Dashboard() {
                       <div className="flex items-center space-x-2 p-3 border rounded-lg">
                         <MapPin className="h-5 w-5 text-red-500" />
                         <input
+                          name="dest"
                           type="text"
                           placeholder="Where to?"
                           className="flex-1 bg-transparent outline-none"
@@ -315,9 +339,13 @@ export default function Dashboard() {
                       )}
                     </div>
                     
-                    {/* Mini map preview would go here */}
+                    {/* Mini map preview */}
                     <div className="h-48 bg-gray-200 rounded-lg flex items-center justify-center">
-                      <p className="text-gray-500">Map Preview</p>
+                      {currentLocation.lat && currentLocation.lon ? (
+                        <LeafletMap lat={currentLocation.lat} lon={currentLocation.lon} />
+                      ) : (
+                        <p className="text-gray-500">Fetching map preview...</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -440,9 +468,12 @@ export default function Dashboard() {
             {/* Sidebar content - 1/3 width */}
             <div className="space-y-6">
               {/* 5️⃣ Trust Score Display */}
-              <PredictComponent />
+              <PredictComponent
+              destination={destination}
+              setDestination={setDestination}
+              />
               
-              {/* 6️⃣ Past Rides */}
+              
               <MapComponent />
               
               
@@ -470,7 +501,7 @@ export default function Dashboard() {
               </Card>
              
              
-              
+              {/* 6️⃣ Past Rides */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle>Past Rides</CardTitle>
@@ -478,22 +509,36 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {pastRides.map(ride => (
-                      <div key={ride.id} className="flex justify-between items-center p-3 border rounded-lg bg-gray-50">
-                        <div>
-                          <p className="text-sm font-medium">{ride.from} to {ride.to}</p>
-                          <p className="text-xs text-gray-500">{ride.date} at {ride.time}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">₹{ride.fare}</p>
-                          <div className="flex items-center space-x-1">
-                            {[...Array(ride.rating)].map((_, i) => (
-                              <Star key={i} className="h-4 w-4 text-yellow-500" />
-                            ))}
+                    {pastRides.length > 0 ? (
+                      pastRides
+                        .slice()
+                        .reverse()
+                        .map((ride) => (
+                        <div
+                          key={ride.id}
+                          className="flex justify-between items-center p-3 border rounded-lg bg-gray-50"
+                        >
+                          <div>
+                            <p className="text-sm font-medium">
+                              {ride.currentLocation} to {ride.destination}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Distance: {ride.distanceKm} km
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">₹{ride.fare}</p>
+                            <div className="flex items-center space-x-1">
+                              {[...Array(ride.rating || 0)].map((_, i) => (
+                                <Star key={i} className="h-4 w-4 text-yellow-500" />
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-sm text-gray-500">No past rides available.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

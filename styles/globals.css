@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* Add this to your global CSS file */
+@import "leaflet/dist/leaflet.css";
 
 :root {
   --background: #ffffff;

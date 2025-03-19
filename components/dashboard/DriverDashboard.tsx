@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { FaRupeeSign } from "react-icons/fa";
+import { FaRupeeSign, FaTimes } from "react-icons/fa";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Progress from "@/components/ui/progress";
@@ -49,14 +49,18 @@ const sliderSettings = {
 
 const DriverDashboard = () => {
   interface Ride {
+    _id: string; // Added id property
     currentLocation: string;
     destination: string;
     distanceKm: number; // Added distanceKm property
+    fare: number;
+    predictedPrice: number; // Added predictedPrice property
   }
 
   const [liveRides, setLiveRides] = useState<Ride[]>([]); // State to store live ride requests
   const [loading, setLoading] = useState(true); // State to handle loading
-
+  const [popupVisible, setPopupVisible] = useState(false);
+  const [popup1Visible, setPopup1Visible] = useState(false);
   // Fetch live ride requests
   useEffect(() => {
     const fetchRides = async () => {
@@ -66,6 +70,7 @@ const DriverDashboard = () => {
           throw new Error(`Failed to fetch rides: ${response.status}`);
         }
         const data = await response.json();
+        console.log("Fetched rides:", data.rides);
         setLiveRides(data.rides); // Set the fetched rides to state
         setLoading(false);
       } catch (error) {
@@ -76,6 +81,54 @@ const DriverDashboard = () => {
 
     fetchRides();
   }, []);
+
+  const handleReject = async (rideId: string) => {
+    setPopupVisible(true);
+    try {
+      const response = await fetch(`/api/deleteRide`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: rideId }),
+      });
+      console.log("Deleting ride with ID:", rideId);
+  
+      if (!response.ok) {
+        throw new Error(`Failed to delete ride: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      console.log(data.message);
+  
+      // Update the state to remove the deleted ride
+      setLiveRides((prevRides) => prevRides.filter((ride) => ride._id !== rideId));
+    } catch (error) {
+      console.error("Error deleting ride:", error);
+    }
+  };
+  const handleAccept = async (rideId: string) => {
+    setPopup1Visible(true);
+  };
+
+  // useEffect(() => {
+  //   const fetchPredictedFares = async () => {
+  //     try {
+  //       const response = await fetch("/api/getPredictedFares");
+  //       if (!response.ok) {
+  //         console.error(`Failed to fetch predicted fares: ${response.status}`);
+  //       }
+  //       const data = await response.json();
+  //       setLiveRides(data.rides); // Update the liveRides state with fetched data
+  //       setLoading(false);
+  //     } catch (error) {
+  //       console.error("Error fetching predicted fares:", error);
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchPredictedFares();
+  // }, []);
 
   return (
     <div className="flex">
@@ -97,38 +150,75 @@ const DriverDashboard = () => {
                 {loading ? (
                   <p>Loading ride requests...</p>
                 ) : liveRides.length > 0 ? (
-                  liveRides.map((ride, index) => (
+                    liveRides
+                      .slice()
+                      .reverse()
+                      .map((ride, index) => (
                     <div
                       key={index}
                       className="flex justify-between items-center bg-gray-100 p-4 rounded-lg mb-2"
                     >
-                      <p>
-                        📍 Pickup: {ride.currentLocation} - Dropoff: {ride.destination} Distance:{ride.distanceKm}
-                      </p>
-                      <div>
-  {/* Reject Button */}
-  <Button
-    variant="outline"
-    className="mr-2 bg-red-500 text-white hover:bg-red-600 focus:ring-2 focus:ring-red-300 active:bg-red-700 transition-all duration-200"
-    onClick={() => console.log(`Rejected ride from ${ride.currentLocation} to ${ride.destination}`)}
-  >
-    Reject
-  </Button>
+                      {/* Ride Details */}
+                      <div className="flex-grow">
+                        <p className="text-sm font-medium">
+                          📍 <span className="font-semibold">Pickup:</span> {ride.currentLocation}
+                        </p>
+                        <p className="text-sm font-medium">
+                          📍 <span className="font-semibold">Dropoff:</span> {ride.destination}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Distance: {ride.distanceKm} km
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Predicted Fare: ₹{ride.predictedPrice}
+                        </p>
+                      </div>
 
-  {/* Accept Button */}
-  <Button
-    className="bg-green-500 text-white hover:bg-green-600 focus:ring-2 focus:ring-green-300 active:bg-green-700 transition-all duration-200"
-    onClick={() => console.log(`Accepted ride from ${ride.currentLocation} to ${ride.destination}`)}
-  >
-    Accept
-  </Button>
-</div>
+                      {/* Action Buttons */}
+                      <div className="flex-shrink-0 flex space-x-2">
+                        <Button
+                              variant="outline"
+                              className="bg-red-500 text-white hover:bg-red-600 focus:ring-2 focus:ring-red-300 active:bg-red-700 transition-all duration-200"
+                              onClick={() => handleReject(ride._id)}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          className="bg-green-500 text-white hover:bg-green-600 focus:ring-2 focus:ring-green-300 active:bg-green-700 transition-all duration-200"
+                          onClick={() => handleAccept(ride._id)
+                          }
+                        >
+                          Accept
+                        </Button>
+                      </div>
                     </div>
                   ))
                 ) : (
                   <p>No live ride requests available.</p>
                 )}
               </CardContent>
+              {popupVisible && (
+                      <div className="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-10">
+                        <div className="flex justify-between items-center">
+                          <h2 className="text-lg font-bold">Successfully rejected</h2>
+                          <button onClick={() => setPopupVisible(false)} className="text-white">
+                            <FaTimes />
+                          </button>
+                        </div>
+                        {/* <p>Please wait while we process your booking...</p> */}
+                      </div>
+              )}
+              {popup1Visible && (
+                      <div className="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-10">
+                        <div className="flex justify-between items-center">
+                          <h2 className="text-lg font-bold">Successfully Accepted</h2>
+                          <button onClick={() => setPopupVisible(false)} className="text-white">
+                            <FaTimes />
+                          </button>
+                        </div>
+                        {/* <p>Please wait while we process your booking...</p> */}
+                      </div>
+                    )}
             </Card>
           </div>
          

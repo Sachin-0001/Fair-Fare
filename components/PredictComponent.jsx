@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FaTimes } from "react-icons/fa";
 
-const PredictComponent = () => {
+const PredictComponent = ({ destination, setDestination }) => {
   const [inputData, setInputData] = useState({
     City: 2,
     Day_of_Week: new Date().getDay(),
@@ -39,7 +40,7 @@ const PredictComponent = () => {
     lat: null,
     lon: null,
   });
-  const [destination, setDestination] = useState(""); // Destination name
+  // const [destination, setDestination] = useState(""); // Destination name
   const [prediction, setPrediction] = useState(null);
   const [finalPrice, setFinalPrice] = useState(null); // State to store the final price in rupees
   const [popupVisible, setPopupVisible] = useState(false); // State for popup visibility
@@ -153,7 +154,7 @@ const PredictComponent = () => {
           currentLon: currentLocation.lon,
           destination,
           distanceKm: inputData.Ride_Distance_KM,
-          predictedPrice: calculatedPrice,
+          predictedPrice: calculatedPrice, // Include the predicted fare
         }),
       });
 
@@ -188,6 +189,7 @@ const PredictComponent = () => {
               <input
                 type="text"
                 value={destination}
+                required
                 onChange={(e) => setDestination(e.target.value)}
                 placeholder="Enter destination name (e.g., Brooklyn)"
                 className="w-full p-2 border border-gray-300 rounded-md"
@@ -198,6 +200,7 @@ const PredictComponent = () => {
               <input
                 type="number"
                 name="Ride_Distance_KM"
+                required
                 value={inputData.Ride_Distance_KM}
                 onChange={handleInputChange}
                 placeholder="Enter ride distance in kilometers"
@@ -221,11 +224,14 @@ const PredictComponent = () => {
         </form>
       </CardContent>
       {popupVisible && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-bold mb-4">Booking Under Progress</h2>
-            <p>Please wait while we process your booking...</p>
+        <div className="fixed bottom-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-10">
+          <div className="flex justify-between items-center">
+            <h2 className="text-lg font-bold">Booking Under Progress</h2>
+            <button onClick={() => setPopupVisible(false)} className="text-white">
+              <FaTimes />
+            </button>
           </div>
+          <p>Please wait while we process your booking...</p>
         </div>
       )}
     </Card>
