@@ -16,6 +16,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Google Drive Configuration
+file_id = '1cnKv9ZKg5-2FjhBstRDmqRve2Jy-Ah8p'
+dwn_url = f"https://drive.google.com/uc?id={file_id}"
+
+# Download the model from Google Drive
+response = requests.get(dwn_url)
+with open('model.pkl', 'wb') as f:
+    f.write(response.content)
+
 # Load the model from the .pkl file
 with open("model.pkl", "rb") as file:
     model = joblib.load(file)
