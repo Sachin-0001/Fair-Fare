@@ -24,10 +24,11 @@ export default async function handler(req, res) {
 
       // Generate a JWT
       const token = jwt.sign(
-        { id: user._id, role: user.role }, 
+        { userId: user._id, role: user.role }, 
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
       );
+
 
       // Return the token and role
       res.status(200).json({

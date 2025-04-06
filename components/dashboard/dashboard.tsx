@@ -26,6 +26,7 @@ import {
 } from "recharts"
 import dynamic from "next/dynamic";
 import PredictComponent from "../PredictComponent"
+import { useRouter } from 'next/router';
 
 // Dynamically import map components with loading states
 const LeafletMap = dynamic(() => import("@/components/leafletMap"), { 
@@ -163,6 +164,20 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 };
 
 export default function Dashboard() {
+  const router = useRouter();
+  let userRole: string | null = null;
+
+  // Check if running in the browser
+  if (typeof window !== 'undefined') {
+    userRole = localStorage.getItem('role');
+  }
+
+  useEffect(() => {
+    if (userRole !== 'USER') {
+      router.push('/unauthorized'); // Redirect to an unauthorized page
+    }
+  }, [userRole, router]);
+
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -376,11 +391,10 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       setIsDashboardLoading(true);
-      
+
       // Try to fetch data from APIs, but don't fail if they're not available
-      const [ridesResponse, locationResponse] = await Promise.allSettled([
-        fetch("/api/getRides"),
-        fetch("/api/user/location")
+      const [ridesResponse] = await Promise.allSettled([
+        fetch("/api/getRides")
       ]);
 
       // Handle rides data
@@ -402,13 +416,33 @@ export default function Dashboard() {
         setPastRides(mockPastRides.slice(-3));
       }
 
-      // Handle location data
-      if (locationResponse.status === 'fulfilled' && locationResponse.value.ok) {
-        const locationData = await locationResponse.value.json();
-        setCurrentLocation(locationData);
-      } else {
-        console.warn('Failed to fetch location, using mock data');
-        setCurrentLocation(mockUserLocation);
+      // Use navigator.geolocation to set current location
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+      });
+
+      const locationData = {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+        address: "Fetching address..."
+      };
+
+      setCurrentLocation(locationData);
+
+      // Update address using reverse geocoding
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${locationData.lat}&lon=${locationData.lon}`
+      );
+      const data = await response.json();
+      if (data && data.display_name) {
+        setCurrentLocation(prev => ({
+          ...prev,
+          address: data.display_name
+        }));
       }
 
     } catch (error) {

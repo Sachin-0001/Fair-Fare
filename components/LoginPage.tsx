@@ -12,6 +12,7 @@ import { motion } from "framer-motion"
 
 interface LoginResponse {
   token: string;
+  role: string;
   error?: string;
 }
 
@@ -50,6 +51,7 @@ const LoginPage: React.FC = () => {
 
       if (response.ok) {
         localStorage.setItem("token", data.token)
+        localStorage.setItem("role", data.role)
         router.push("/user/dashboard")
       } else {
         setError(data.error || "An error occurred")

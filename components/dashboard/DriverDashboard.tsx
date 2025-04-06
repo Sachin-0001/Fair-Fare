@@ -14,6 +14,7 @@ import Slider from "react-slick";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Shield } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useRouter } from 'next/router';
 
 const earningsData = [
   { day: "Mon", earnings: 50 },
@@ -73,7 +74,21 @@ const DriverDashboardSkeleton = () => (
   </div>
 );
 
-const DriverDashboard = () => {
+const DriverDashboard: React.FC = () => {
+  const router = useRouter();
+  let userRole: string | null = null;
+
+  // Check if running in the browser
+  if (typeof window !== 'undefined') {
+    userRole = localStorage.getItem('role');
+  }
+
+  useEffect(() => {
+    if (userRole !== 'DRIVER') {
+      router.push('/unauthorized'); // Redirect to an unauthorized page
+    }
+  }, [userRole, router]);
+
   interface Ride {
     _id: string; // Added id property
     currentLocation: string;
