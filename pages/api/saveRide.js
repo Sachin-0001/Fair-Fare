@@ -14,6 +14,12 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "All fields are required" });
       }
 
+      // Calculate final fare
+      const basePrice = 30;
+      const additionalChargePerKM = 15;
+      const additionalDistance = distanceKm > 2 ? distanceKm - 2 : 0;
+      const finalFare = Math.round(basePrice + additionalDistance * additionalChargePerKM);
+
       // Create a new ride document
       const ride = new Ride({
         currentLocation,
@@ -22,6 +28,7 @@ export default async function handler(req, res) {
         destination,
         distanceKm,
         predictedPrice,
+        finalFare,
       });
 
       // Save the ride to the database

@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const MapComponent = () => {
-  const [source, setSource] = useState({ lat: "", lon: "" });
-  const [destination, setDestination] = useState("");
-  const [distance, setDistance] = useState(null);
-  const [error, setError] = useState("");
+interface Source {
+  lat: string;
+  lon: string;
+}
 
-  // Automatically fetch user's current location
+interface DistanceResponse {
+  distance: number;
+}
+
+const MapComponent: React.FC = () => {
+  const [source, setSource] = useState<Source>({ lat: "", lon: "" });
+  const [destination, setDestination] = useState<string>("");
+  const [distance, setDistance] = useState<number | null>(null);
+  const [error, setError] = useState<string>("");
+
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -27,17 +35,21 @@ const MapComponent = () => {
     }
   }, []);
 
-  const handleCalculateDistance = async () => {
+  const handleCalculateDistance = async (): Promise<void> => {
     try {
       setError("");
-      const response = await axios.post("http://localhost:8000/get_distance", {
+      const response = await axios.post<DistanceResponse>("http://localhost:8000/get_distance", {
         source_lat: parseFloat(source.lat),
         source_lon: parseFloat(source.lon),
         destination: destination,
       });
       setDistance(response.data.distance);
     } catch (err) {
-      setError(err.response?.data?.detail || "Error calculating distance");
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.detail || "Error calculating distance");
+      } else {
+        setError("An unexpected error occurred");
+      }
     }
   };
 
@@ -45,34 +57,12 @@ const MapComponent = () => {
     <div className="p-4 border rounded-lg bg-gray-50">
       <h2 className="text-lg font-semibold mb-4">Calculate Distance</h2>
       <div className="space-y-4">
-        {/* <div>
-          <label className="block text-sm font-medium text-gray-700">Source Latitude</label>
-          <input
-            type="text"
-            value={source.lat}
-            onChange={(e) => setSource({ ...source, lat: e.target.value })}
-            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Fetching your location..."
-            disabled
-          />
-        </div> */}
-        {/* <div>
-          <label className="block text-sm font-medium text-gray-700">Source Longitude</label>
-          <input
-            type="text"
-            value={source.lon}
-            onChange={(e) => setSource({ ...source, lon: e.target.value })}
-            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Fetching your location..."
-            disabled
-          />
-        </div> */}
         <div>
           <label className="block text-sm font-medium text-gray-700">Destination</label>
           <input
             type="text"
             value={destination}
-            onChange={(e) => setDestination(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDestination(e.target.value)}
             className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter destination address"
           />
@@ -92,4 +82,4 @@ const MapComponent = () => {
   );
 };
 
-export default MapComponent;
+export default MapComponent; 

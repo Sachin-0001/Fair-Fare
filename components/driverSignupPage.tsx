@@ -9,17 +9,28 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-function SignupPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [licenseNumber, setLicenseNumber] = useState("");
-  const [vehicleNumber, setVehicleNumber] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+interface SignupResponse {
+  error?: string;
+}
+
+interface SignupFormData {
+  email: string;
+  password: string;
+  licenseNumber: string;
+  vehicleNumber: string;
+}
+
+const SignupPage: React.FC = () => {
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [licenseNumber, setLicenseNumber] = useState<string>("");
+  const [vehicleNumber, setVehicleNumber] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
@@ -31,20 +42,22 @@ function SignupPage() {
     }
 
     try {
+      const formData: SignupFormData = {
+        email,
+        password,
+        licenseNumber,
+        vehicleNumber,
+      };
+
       const response = await fetch("/api/driver/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-          licenseNumber: licenseNumber,
-          vehicleNumber: vehicleNumber,
-        }),
+        body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      const data: SignupResponse = await response.json();
 
       if (response.ok) {
         router.push("/driver/dashboard");
@@ -56,15 +69,16 @@ function SignupPage() {
     } finally {
       setIsLoading(false);
     }
-    };
-    const handleGoBack = () => {
-        router.push("/"); // Redirect to the landing page
-      };
+  };
+
+  const handleGoBack = (): void => {
+    router.push("/");
+  };
 
   return (
     <section className="bg-white">
-          <div className="lg:grid lg:min-h-screen lg:grid-cols-12">
-          <div className="absolute top-4 left-4">
+      <div className="lg:grid lg:min-h-screen lg:grid-cols-12">
+        <div className="absolute top-4 left-4">
           <button
             onClick={handleGoBack}
             className="bg-gray-200 text-black py-2 px-4 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
@@ -110,7 +124,7 @@ function SignupPage() {
                   type="email"
                   value={email}
                   className="mt-1 block w-full rounded-md border-gray-700 text-black shadow-sm focus:border-black focus:ring-black"
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   disabled={isLoading}
                   required
@@ -127,7 +141,7 @@ function SignupPage() {
                   type="password"
                   value={password}
                   className="mt-1 block w-full rounded-md border-gray-700 text-black shadow-sm focus:border-black focus:ring-black"
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   disabled={isLoading}
                   required
@@ -144,7 +158,7 @@ function SignupPage() {
                   type="password"
                   value={confirmPassword}
                   className="mt-1 block w-full rounded-md border-gray-700 text-black shadow-sm focus:border-black focus:ring-black"
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   disabled={isLoading}
                   required
@@ -161,7 +175,7 @@ function SignupPage() {
                   type="text"
                   value={licenseNumber}
                   className="mt-1 block w-full rounded-md border-gray-700 text-black shadow-sm focus:border-black focus:ring-black"
-                  onChange={(e) => setLicenseNumber(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLicenseNumber(e.target.value)}
                   placeholder="Enter your license number"
                   disabled={isLoading}
                   required
@@ -178,7 +192,7 @@ function SignupPage() {
                   type="text"
                   value={vehicleNumber}
                   className="mt-1 block w-full rounded-md border-gray-700 text-black shadow-sm focus:border-black focus:ring-black"
-                  onChange={(e) => setVehicleNumber(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVehicleNumber(e.target.value)}
                   placeholder="Enter your vehicle number"
                   disabled={isLoading}
                   required
@@ -214,6 +228,6 @@ function SignupPage() {
       </div>
     </section>
   );
-}
+};
 
 export default SignupPage;

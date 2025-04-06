@@ -8,6 +8,7 @@ const rideSchema = new Schema(
     destination: { type: String, required: true }, // Destination address entered by the user
     distanceKm: { type: Number, required: true }, // Distance of the ride in kilometers
     predictedPrice: { type: Number, required: true }, // Predicted price for the ride
+    finalFare: { type: Number, required: true }, // Final fare for the ride
   },
   {
     timestamps: true, // Automatically adds `createdAt` and `updatedAt` fields
